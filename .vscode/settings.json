@@ -1,0 +1,7 @@
+{
+  "editor.insertSpaces": false,
+  "typescript.tsc.autoDetect": "off",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true
+  }
+}
