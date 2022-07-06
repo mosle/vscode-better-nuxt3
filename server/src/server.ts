@@ -39,9 +39,6 @@ connection.onInitialize((_: InitializeParams) => {
   const result: InitializeResult = {
     capabilities: {
       textDocumentSync: TextDocumentSyncKind.Incremental,
-      completionProvider: {
-        resolveProvider: true,
-      },
       codeActionProvider: {
         codeActionKinds: [CodeActionKind.QuickFix],
       },

@@ -3,7 +3,7 @@
   "description": "",
   "author": "mosle",
   "license": "MIT",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "repository": {
     "type": "git",
     "url": ""
@@ -59,6 +59,7 @@
   },
   "dependencies": {
     "image-size": "^1.0.1",
+    "probe-image-size": "^7.2.3",
     "ts-paths-resolver-esm": "git+https://github.com/mosle/ts-paths-resolver-esm.git#0.0.3"
   }
 }

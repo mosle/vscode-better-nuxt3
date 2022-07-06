@@ -10,7 +10,7 @@ export function activate(context: ExtensionContext) {
   const debugOptions = {
     /*execArgv: ["--nolazy", "--inspect=6009"]*/
   };
-  console.log(1);
+
   const serverOptions: ServerOptions = {
     run: { module: serverModule, transport: TransportKind.ipc },
     debug: {

@@ -21,9 +21,10 @@ export function createFillWidthAndHeightForImgTag(title: string, key: string) {
         const [documentUri, range] = params.arguments;
         const imgTag = document.getText(range);
         const resolver = createResolver("tsconfig.json", workspaceRootPath);
-        const replacedImgTag = updateImageSizeForImg(imgTag, resolver);
-
-        return TextDocumentEdit.create({ uri: documentUri, version: null }, [TextEdit.replace(range, replacedImgTag)]);
+        const replacedImgTag = await updateImageSizeForImg(imgTag, resolver);
+        if (replacedImgTag !== imgTag) {
+          return TextDocumentEdit.create({ uri: documentUri, version: null }, [TextEdit.replace(range, replacedImgTag)]);
+        }
       },
     },
   };
