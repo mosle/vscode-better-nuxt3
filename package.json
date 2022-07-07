@@ -3,7 +3,7 @@
   "description": "",
   "author": "mosle",
   "license": "MIT",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "repository": {
     "type": "git",
     "url": ""
@@ -22,7 +22,19 @@
     "configuration": {
       "type": "object",
       "title": "configuration",
-      "properties": {}
+      "properties": {
+        "vscodeBetterNuxt3.trace.server": {
+          "scope": "window",
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "Traces the communication between VS Code and the language server."
+        }
+      }
     }
   },
   "scripts": {

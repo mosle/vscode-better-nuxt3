@@ -6,13 +6,19 @@ export function createParser(text: string) {
 
   const collectElementInTemplateChildNodes = (targetNodes: TemplateChildNode[], collected: TemplateChildNode[], predicate: (node: TemplateChildNode) => boolean) => {
     targetNodes.forEach((node) => {
-      if (predicate(node)) collected.push(node);
-      if (node.type === NodeTypes.ELEMENT && node.children?.length > 0) collectElementInTemplateChildNodes(node.children, collected, predicate);
+      if (predicate(node)) {
+        collected.push(node);
+      }
+      if (node.type === NodeTypes.ELEMENT && node.children?.length > 0) {
+        collectElementInTemplateChildNodes(node.children, collected, predicate);
+      }
     });
   };
 
   function findElementInTemplate(predicate: (node: TemplateChildNode) => boolean): TemplateChildNode[] {
-    if (!parsed.descriptor?.template?.ast) return [];
+    if (!parsed.descriptor?.template?.ast) {
+      return [];
+    }
     const nodes: TemplateChildNode[] = [];
     collectElementInTemplateChildNodes(parsed.descriptor.template.ast.children, nodes, predicate);
     return nodes;

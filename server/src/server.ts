@@ -1,39 +1,22 @@
-import {
-  createConnection,
-  TextDocuments,
-  Diagnostic,
-  DiagnosticSeverity,
-  //  ProposedFeatures,
-  InitializeParams,
-  // DidChangeConfigurationNotification,
-  // CompletionItem,
-  // CompletionItemKind,
-  // TextDocumentPositionParams,
-  TextDocumentSyncKind,
-  InitializeResult,
-  CodeActionKind,
-  CodeAction,
-  // Command,
-  // TextDocumentEdit,
-  // TextEdit,
-} from "vscode-languageserver/node";
+import { createConnection, TextDocuments, Diagnostic, DiagnosticSeverity, InitializeParams, TextDocumentSyncKind, InitializeResult, CodeActionKind, CodeAction } from "vscode-languageserver/node";
 import { fileURLToPath } from "url";
 
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { createParser } from "./vueAstParser";
-import { createFillWidthAndHeightForImgTag } from "./commands/replacer";
+import { createFillWidthAndHeightForImgTag, createFillWidthAndHeightForImgTagBulk } from "./commands/replacer";
 
 const connection = createConnection(/*ProposedFeatures.all*/);
 
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
-// type CommandDef = {[key:string]:{title:string,func:Function}};
+const commands = [
+  createFillWidthAndHeightForImgTag("Insert width and height", "better-nuxt3.fill-width-and-height"),
+  createFillWidthAndHeightForImgTagBulk("Insert width and height to all images", "better-nuxt3.fill-width-and-height-bulk"),
+] as const;
 
-// const commandDefs:CommandDef[] = [
-//   {"better-nuxt3.fillWidthAndHeight":{title:"Insert width and height",func:createFillWidthAndHeightForImgTag}}
-// ] as const;
-
-const commands = { ...createFillWidthAndHeightForImgTag("Insert width and height", "better-nuxt3.fillWidthAndHeight") };
+const findCommand = (key: typeof commands[number]["key"]) => {
+  return commands.find((c) => c.key === key)!;
+};
 
 connection.onInitialize((_: InitializeParams) => {
   const result: InitializeResult = {
@@ -43,7 +26,7 @@ connection.onInitialize((_: InitializeParams) => {
         codeActionKinds: [CodeActionKind.QuickFix],
       },
       executeCommandProvider: {
-        commands: Object.keys(commands),
+        commands: commands.map((command) => command.key),
       },
     },
   };
@@ -64,9 +47,18 @@ connection.onCodeAction((params) => {
 
   const diag = params.context.diagnostics?.[0];
   if (diag && diag.source) {
-    const command = commands[diag.source]; //Object.values(commands).find((command) => command.title === diag.source);
-    if (command) {
-      return [CodeAction.create(command.title, command.create(textDocument.uri, diag.range), CodeActionKind.QuickFix)];
+    const command = findCommand(diag.source as any);
+    const actions: CodeAction[] = [];
+    if (command.key === "better-nuxt3.fill-width-and-height") {
+      actions.push(CodeAction.create(command.title, command.createCommand({ documentUri: textDocument.uri, range: diag.range }), CodeActionKind.QuickFix));
+
+      const sub = findCommand("better-nuxt3.fill-width-and-height-bulk");
+      if (sub.key === "better-nuxt3.fill-width-and-height-bulk") {
+        actions.push(CodeAction.create(sub.title, sub.createCommand({ documentUri: textDocument.uri }), CodeActionKind.QuickFix));
+      }
+    }
+    if (actions.length > 0) {
+      return actions;
     }
   }
   return;
@@ -85,7 +77,7 @@ async function validate(textDocument: TextDocument): Promise<void> {
         end: textDocument.positionAt(img.loc.end.offset),
       },
       message: `width and height are missing.`,
-      source: "better-nuxt3.fillWidthAndHeight",
+      source: findCommand("better-nuxt3.fill-width-and-height").key,
     };
     return diagnostic;
   });
@@ -98,23 +90,16 @@ connection.onDidChangeWatchedFiles((_change) => {
 });
 
 connection.onExecuteCommand(async (params) => {
-  const command = commands[params.command];
+  console.log(params.command);
+  const command = findCommand(params.command as any);
   if (!command) {
-    return;
-  }
-  const documentUri = command.documentUri(params);
-  if (!documentUri) {
-    return;
-  }
-  const textDocument = documents.get(documentUri);
-  if (!textDocument) {
     return;
   }
 
   const folders = await connection.workspace.getWorkspaceFolders();
   if (folders?.[0]) {
     const rootPath = fileURLToPath(folders[0].uri);
-    const editSet = await command.createEditSet(rootPath, textDocument, params);
+    const editSet = await command.createEditSet(rootPath, documents, params.arguments?.[0]);
     if (editSet) {
       connection.workspace.applyEdit({ documentChanges: [editSet] });
     }

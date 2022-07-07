@@ -1,31 +1,55 @@
 //import resolver from "../ts-paths-resolver";
 import { createResolver } from "ts-paths-resolver-esm";
 import { Range, TextDocument } from "vscode-languageserver-textdocument";
-import { Command, ExecuteCommandParams, TextDocumentEdit, TextEdit } from "vscode-languageserver/node";
+import { TextDocuments, TextDocumentEdit, TextEdit } from "vscode-languageserver/node";
 import { updateImageSizeForImg } from "../process/html";
+import { createParser } from "../vueAstParser";
+import { defineCommand } from "./manager";
 
 //const { createResolver } = resolver;
 
-export type CommandGeneratorReturnType = ReturnType<typeof createFillWidthAndHeightForImgTag>;
+export const createFillWidthAndHeightForImgTag = defineCommand<{ documentUri: string; range: Range }>({
+  createEditSet: async (workspaceRootPath: string, documents: TextDocuments<TextDocument>, params) => {
+    const { documentUri, range } = params;
+    const textDocument = documents.get(documentUri);
+    if (!textDocument) {
+      return;
+    }
 
-export function createFillWidthAndHeightForImgTag(title: string, key: string) {
-  return {
-    [key]: {
-      create: (documentUri: string, range: Range) => Command.create(title, key, documentUri, range),
-      title: title,
-      documentUri: (params: ExecuteCommandParams) => params.arguments?.[0],
-      createEditSet: async (workspaceRootPath: string, document: TextDocument, params: ExecuteCommandParams) => {
-        if (!params.arguments) {
-          return;
-        }
-        const [documentUri, range] = params.arguments;
-        const imgTag = document.getText(range);
-        const resolver = createResolver("tsconfig.json", workspaceRootPath);
-        const replacedImgTag = await updateImageSizeForImg(imgTag, resolver);
-        if (replacedImgTag !== imgTag) {
-          return TextDocumentEdit.create({ uri: documentUri, version: null }, [TextEdit.replace(range, replacedImgTag)]);
-        }
-      },
-    },
-  };
-}
+    const imgTag = textDocument.getText(range);
+    const resolver = createResolver("tsconfig.json", workspaceRootPath);
+    const replacedImgTag = await updateImageSizeForImg(imgTag, resolver);
+    if (replacedImgTag !== imgTag) {
+      return TextDocumentEdit.create({ uri: documentUri, version: null }, [TextEdit.replace(range, replacedImgTag)]);
+    }
+  },
+});
+
+export const createFillWidthAndHeightForImgTagBulk = defineCommand<{ documentUri: string }>({
+  createEditSet: async (workspaceRootPath: string, documents: TextDocuments<TextDocument>, params) => {
+    const { documentUri } = params;
+    const textDocument = documents.get(documentUri);
+    if (!textDocument) {
+      return;
+    }
+    const text = textDocument.getText();
+    const parser = createParser(text);
+    const resolver = createResolver("tsconfig.json", workspaceRootPath);
+    const imgs = parser.findImgElementInTemplate();
+    const replaceSet = [];
+    for (const img of imgs) {
+      const range = {
+        start: textDocument.positionAt(img.loc.start.offset),
+        end: textDocument.positionAt(img.loc.end.offset),
+      };
+      const imgTag = textDocument.getText(range);
+      const replacedImgTag = await updateImageSizeForImg(imgTag, resolver);
+      if (replacedImgTag !== imgTag) {
+        replaceSet.push(TextEdit.replace(range, replacedImgTag));
+      }
+    }
+    if (replaceSet.length > 0) {
+      return TextDocumentEdit.create({ uri: documentUri, version: null }, replaceSet);
+    }
+  },
+});
