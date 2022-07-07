@@ -14,7 +14,8 @@ const commands = [
   createFillWidthAndHeightForImgTagBulk("Insert width and height to all images", "better-nuxt3.fill-width-and-height-bulk"),
 ] as const;
 
-const findCommand = (key: typeof commands[number]["key"]) => {
+type CommandKey = typeof commands[number]["key"];
+const findCommand = (key: CommandKey) => {
   return commands.find((c) => c.key === key)!;
 };
 
@@ -49,12 +50,14 @@ connection.onCodeAction((params) => {
   if (diag && diag.source) {
     const command = findCommand(diag.source as any);
     const actions: CodeAction[] = [];
-    if (command.key === "better-nuxt3.fill-width-and-height") {
-      actions.push(CodeAction.create(command.title, command.createCommand({ documentUri: textDocument.uri, range: diag.range }), CodeActionKind.QuickFix));
+    if (command) {
+      if (command.key === "better-nuxt3.fill-width-and-height") {
+        actions.push(CodeAction.create(command.title, command.createCommand({ documentUri: textDocument.uri, range: diag.range }), CodeActionKind.QuickFix));
 
-      const sub = findCommand("better-nuxt3.fill-width-and-height-bulk");
-      if (sub.key === "better-nuxt3.fill-width-and-height-bulk") {
-        actions.push(CodeAction.create(sub.title, sub.createCommand({ documentUri: textDocument.uri }), CodeActionKind.QuickFix));
+        const sub = findCommand("better-nuxt3.fill-width-and-height-bulk");
+        if (sub.key === "better-nuxt3.fill-width-and-height-bulk") {
+          actions.push(CodeAction.create(sub.title, sub.createCommand({ documentUri: textDocument.uri }), CodeActionKind.QuickFix));
+        }
       }
     }
     if (actions.length > 0) {
